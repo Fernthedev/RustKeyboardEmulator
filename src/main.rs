@@ -2,14 +2,14 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path;
-use std::io::{BufReader, BufRead};
+use std::io::{BufReader, BufRead, Lines};
 extern crate keybd_event;
 
 
 use keybd_event::KeyboardKey::{KeyA, KeyZ, Key0, KeySP1, KeyKPComma};
 use keybd_event::{KeyBondingInstance, KeyboardKey};
 use std::time::Duration;
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 use std::thread::sleep;
 use std::ptr::null;
 use std::fmt::Error;
@@ -19,6 +19,9 @@ use std::collections::LinkedList;
 // use winapi::um::winuser::{VK_SHIFT, VK_RETURN};
 use std::mem::size_of;
 use std::os::raw::c_int;
+use std::fs::{File, read};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[link(name = "user32")]
 extern "C" {
@@ -40,11 +43,19 @@ struct INPUT {
 
 const INPUT_KEYBOARD: u32 = 1;
 
+fn read_lines(filename: &String) -> Lines<BufReader<File>> {
+    let file = fs::File::open(filename).unwrap();
+
+    let mut reader = BufReader::new(file);
+
+    return reader.lines();
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     let mut filename = String::new();
-    let mut time_between_lines: u64 = 5;
+    let mut time_between_lines: i64 = 5;
 
     if args.len() > 1 {
         filename = String::from(&args[1]);
@@ -62,7 +73,7 @@ fn main() {
     }
 
     if args.len() > 2 {
-        match String::from(&args[2]).parse::<u64>() {
+        match String::from(&args[2]).parse::<i64>() {
             Ok(i) => { time_between_lines = i }
             Err(e) => {
                 panic!(e)
@@ -77,7 +88,7 @@ fn main() {
             Ok(txt) => {
                 input = input.trim().replace("\n", "");
                 if !input.is_empty() {
-                    match input.parse::<u64>() {
+                    match input.parse::<i64>() {
                         Ok(i) => { time_between_lines = i }
                         Err(e) => {
                             panic!(e)
@@ -97,8 +108,7 @@ fn main() {
         panic!(format!("\nFile {} could not be found in folder {}", filename, std::path::PathBuf::from(".").canonicalize().unwrap().to_str().unwrap()));
     }
 
-    let file = fs::File::open(filename).unwrap();
-    let reader = BufReader::new(file);
+
 
 
     let mut kb = KeyBondingInstance::new().unwrap();
@@ -108,18 +118,29 @@ fn main() {
 
 
     kb.has_shift(false);
-    for line in reader.lines() {
+    let mut line_int: i64 = 0;
+
+
+
+    let count: i64 = read_lines(&filename).count() as i64;
+    for line in read_lines(&filename) {
         if !line.is_ok() {
             continue;
         }
 
-        if (time_between_lines > 0) {
+        if time_between_lines > 0 {
             kb.clear();
         }
 
         let l_str = line.unwrap();
 
-        println!("Doing line {}", l_str);
+        let mut remainingTime = -1;
+
+        if time_between_lines > 0 {
+            remainingTime = (time_between_lines*count) - (time_between_lines* line_int)
+        }
+
+        println!("Doing line {} {}/{} {}% remaining time {}s", l_str, line_int, count, ((line_int as f64/count as f64) * 100.0) as i64, (remainingTime as f64 / 1000.0));
         for chara in l_str.chars() {
             kb.has_shift(chara.is_uppercase());
             match get_key_from_char(chara.to_ascii_lowercase()) {
@@ -133,9 +154,10 @@ fn main() {
         kb.add_key(KeyboardKey::KeyENTER);
 
         if time_between_lines > 0 {
-            sleep(Duration::from_millis(time_between_lines));
+            sleep(Duration::from_millis(time_between_lines as u64));
             kb.launching();
         }
+        line_int += 1;
     }
 
     if time_between_lines == 0 {
