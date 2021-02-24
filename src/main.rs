@@ -10,6 +10,16 @@ use std::thread::sleep;
 // use winapi::um::winuser::{VK_SHIFT, VK_RETURN};
 use std::fs::{File};
 
+
+
+const USE_CLIPBOARD: bool = true;
+
+extern crate clipboard;
+use clipboard::ClipboardProvider;
+use clipboard::ClipboardContext;
+use std::error::Error;
+use std::borrow::Borrow;
+
 #[link(name = "user32")]
 extern "C" {
     fn SendInput(cInputs: u32, pInputs: &Vec<INPUT>, int: i32) -> u32;
@@ -98,6 +108,7 @@ fn main() {
 
 
 
+
     let mut kb = KeyBondingInstance::new().unwrap();
 
     println!("Sleeping 4 secs");
@@ -105,9 +116,10 @@ fn main() {
 
 
     kb.has_shift(false);
-    let mut line_int: i64 = 0;
+    let mut line_int: i64 = 1;
 
 
+    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
 
     let count: i64 = read_lines(&filename).count() as i64;
     for line in read_lines(&filename) {
@@ -116,46 +128,96 @@ fn main() {
             continue;
         }
 
-        let l_str = line.unwrap();
+        let l_str = line.unwrap().replace("\n", "");
 
         if l_str.is_empty() {
             line_int += 1;
             continue;
         }
 
-        if time_between_lines > 0 {
-            kb.clear();
-        }
-
-
-
         let mut remainingTime = -1;
+
+        if cfg!(windows) && USE_CLIPBOARD {
+            remainingTime += 5;
+        }
 
         if time_between_lines > 0 {
             remainingTime = (time_between_lines*count) - (time_between_lines* line_int)
         }
 
         println!("Doing line {} {}/{} {}% remaining time {}s", l_str, line_int, count, ((line_int as f64/count as f64) * 100.0) as i64, (remainingTime as f64 / 1000.0));
-        for chara in l_str.trim().chars() {
-            kb.has_shift(chara.is_uppercase());
-            match get_key_from_char(chara.to_ascii_lowercase()) {
-                Ok(c) => { kb.add_key(c); }
-                Err(e) => {
-                    println!("Key error: \"{}\"", e)
+
+        if !USE_CLIPBOARD {
+            if time_between_lines > 0 {
+                kb.clear();
+            }
+
+            for chara in l_str.trim().chars() {
+                kb.has_shift(chara.is_uppercase());
+                match get_key_from_char(chara.to_ascii_lowercase()) {
+                    Ok(c) => { kb.add_key(c); }
+                    Err(e) => {
+                        println!("Key error: \"{}\"", e)
+                    }
                 }
             }
-        }
 
-        kb.add_key(KeyboardKey::KeyENTER);
+            kb.add_key(KeyboardKey::KeyENTER);
 
-        if time_between_lines > 0 {
-            sleep(Duration::from_millis(time_between_lines as u64));
-            kb.launching();
+            if time_between_lines > 0 {
+                sleep(Duration::from_millis(time_between_lines as u64));
+                kb.launching();
+            }
+        } else {
+            let crash_amount: u32 = 0;
+            loop {
+                match ctx.set_contents(l_str.trim().to_owned()) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        if crash_amount > 5 {
+                            unsafe {
+                                panic!("Unable to handle error. Maybe timings? {}", time_between_lines);
+                            }
+                        }
+
+                        println!("Clip board error due to {}", e);
+                        continue;
+                    }
+                }
+
+                kb.clear();
+
+
+                kb.has_ctrl(true);
+                kb.add_key(KeyboardKey::KeyV);
+
+
+
+
+                kb.launching();
+
+                kb.clear();
+
+                kb.has_ctrl(false);
+                kb.add_key(KeyboardKey::KeyENTER);
+                kb.launching();
+                kb.clear();
+
+
+
+
+                if remainingTime > 0 {
+                    // Needed for windows lock
+                    sleep(Duration::from_millis((remainingTime) as u64));
+                }
+
+                break;
+            }
         }
         line_int += 1;
     }
 
-    if time_between_lines == 0 {
+    if time_between_lines == 0 && !USE_CLIPBOARD {
         kb.launching();
     }
 

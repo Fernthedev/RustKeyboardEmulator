@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 keybd_event = "0.1.2"
+clipboard = "0.5.0"
