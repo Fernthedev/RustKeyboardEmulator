@@ -1,27 +1,14 @@
 use std::env;
 use std::fs;
 use std::io;
-use std::path;
 use std::io::{BufReader, BufRead, Lines};
 extern crate keybd_event;
 
-
-use keybd_event::KeyboardKey::{KeyA, KeyZ, Key0, KeySP1, KeyKPComma};
 use keybd_event::{KeyBondingInstance, KeyboardKey};
 use std::time::Duration;
-use std::borrow::{Borrow, BorrowMut};
 use std::thread::sleep;
-use std::ptr::null;
-use std::fmt::Error;
-use std::ffi::NulError;
-use std::num::ParseIntError;
-use std::collections::LinkedList;
 // use winapi::um::winuser::{VK_SHIFT, VK_RETURN};
-use std::mem::size_of;
-use std::os::raw::c_int;
-use std::fs::{File, read};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::fs::{File};
 
 #[link(name = "user32")]
 extern "C" {
@@ -46,7 +33,7 @@ const INPUT_KEYBOARD: u32 = 1;
 fn read_lines(filename: &String) -> Lines<BufReader<File>> {
     let file = fs::File::open(filename).unwrap();
 
-    let mut reader = BufReader::new(file);
+    let reader = BufReader::new(file);
 
     return reader.lines();
 }
@@ -63,7 +50,7 @@ fn main() {
         println!("Specify the file to read. Absolute or relative (./)");
 
         match io::stdin().read_line(&mut filename) {
-            Ok(txt) => {
+            Ok(_txt) => {
 
             }
             Err(e) => {
@@ -85,7 +72,7 @@ fn main() {
         let mut input = String::new();
 
         match io::stdin().read_line(&mut input) {
-            Ok(txt) => {
+            Ok(_txt) => {
                 input = input.trim().replace("\n", "");
                 if !input.is_empty() {
                     match input.parse::<i64>() {
