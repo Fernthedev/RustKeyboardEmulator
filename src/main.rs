@@ -54,6 +54,7 @@ fn main() {
     let mut filename = String::new();
     let mut time_between_lines: i64 = 5;
 
+
     if args.len() > 1 {
         filename = String::from(&args[1]);
     } else {
@@ -106,7 +107,9 @@ fn main() {
     }
 
 
-
+    if cfg!(windows) && USE_CLIPBOARD && time_between_lines == 0 {
+        time_between_lines += 5;
+    }
 
 
     let mut kb = KeyBondingInstance::new().unwrap();
@@ -122,6 +125,8 @@ fn main() {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
 
     let count: i64 = read_lines(&filename).count() as i64;
+
+
     for line in read_lines(&filename) {
         if !line.is_ok() {
             line_int += 1;
@@ -136,10 +141,6 @@ fn main() {
         }
 
         let mut remainingTime = -1;
-
-        if cfg!(windows) && USE_CLIPBOARD {
-            remainingTime += 5;
-        }
 
         if time_between_lines > 0 {
             remainingTime = (time_between_lines*count) - (time_between_lines* line_int)
@@ -206,9 +207,9 @@ fn main() {
 
 
 
-                if remainingTime > 0 {
+                if time_between_lines > 0 {
                     // Needed for windows lock
-                    sleep(Duration::from_millis((remainingTime) as u64));
+                    sleep(Duration::from_millis((time_between_lines) as u64));
                 }
 
                 break;
