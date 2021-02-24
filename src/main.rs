@@ -16,7 +16,7 @@ use std::fmt::Error;
 use std::ffi::NulError;
 use std::num::ParseIntError;
 use std::collections::LinkedList;
-use winapi::um::winuser::{VK_SHIFT, VK_RETURN};
+// use winapi::um::winuser::{VK_SHIFT, VK_RETURN};
 use std::mem::size_of;
 use std::os::raw::c_int;
 
@@ -113,7 +113,10 @@ fn main() {
             continue;
         }
 
-        kb.clear();
+        if (time_between_lines > 0) {
+            kb.clear();
+        }
+
         let l_str = line.unwrap();
 
         println!("Doing line {}", l_str);
