@@ -125,6 +125,14 @@ fn main() {
     let count: i64 = read_lines(&filename).count() as i64;
     for line in read_lines(&filename) {
         if !line.is_ok() {
+            line_int += 1;
+            continue;
+        }
+
+        let l_str = line.unwrap();
+
+        if l_str.is_empty() {
+            line_int += 1;
             continue;
         }
 
@@ -132,7 +140,7 @@ fn main() {
             kb.clear();
         }
 
-        let l_str = line.unwrap();
+
 
         let mut remainingTime = -1;
 
@@ -141,7 +149,7 @@ fn main() {
         }
 
         println!("Doing line {} {}/{} {}% remaining time {}s", l_str, line_int, count, ((line_int as f64/count as f64) * 100.0) as i64, (remainingTime as f64 / 1000.0));
-        for chara in l_str.chars() {
+        for chara in l_str.trim().chars() {
             kb.has_shift(chara.is_uppercase());
             match get_key_from_char(chara.to_ascii_lowercase()) {
                 Ok(c) => { kb.add_key(c); }
