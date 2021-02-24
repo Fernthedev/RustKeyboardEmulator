@@ -91,7 +91,7 @@ fn main() {
         }
     }
 
-    filename = filename.trim().replace("\n","");
+    filename = filename.trim().replace("\n", "");
 
     if !std::path::PathBuf::from(&filename).as_path().exists() {
         panic!(format!("\nFile {} could not be found in folder {}", filename, std::path::PathBuf::from(".").canonicalize().unwrap().to_str().unwrap()));
@@ -101,42 +101,43 @@ fn main() {
     let reader = BufReader::new(file);
 
 
-        let mut kb = KeyBondingInstance::new().unwrap();
+    let mut kb = KeyBondingInstance::new().unwrap();
 
-        println!("Sleeping 4 secs");
-        sleep(Duration::from_secs(4));
-
-
-        kb.has_shift(false);
-        for line in reader.lines() {
-            if !line.is_ok() {
-                continue;
-            }
-
-            kb.clear();
-            let l_str = line.unwrap();
-
-            println!("Doing line {}", l_str);
-            for chara in l_str.chars() {
-                kb.has_shift(chara.is_uppercase());
-                match get_key_from_char(chara.to_ascii_lowercase()) {
-                    Ok(c) => { kb.add_key(c); }
-                    Err(e) => {
-                        println!("Key error: \"{}\"", e)
-                    }
-                }
-            }
-
-            kb.add_key(KeyboardKey::KeyENTER);
-
-            if time_between_lines > 0 {
-                sleep(Duration::from_millis(time_between_lines))
-            }
+    println!("Sleeping 4 secs");
+    sleep(Duration::from_secs(4));
 
 
+    kb.has_shift(false);
+    for line in reader.lines() {
+        if !line.is_ok() {
+            continue;
         }
 
+        kb.clear();
+        let l_str = line.unwrap();
+
+        println!("Doing line {}", l_str);
+        for chara in l_str.chars() {
+            kb.has_shift(chara.is_uppercase());
+            match get_key_from_char(chara.to_ascii_lowercase()) {
+                Ok(c) => { kb.add_key(c); }
+                Err(e) => {
+                    println!("Key error: \"{}\"", e)
+                }
+            }
+        }
+
+        kb.add_key(KeyboardKey::KeyENTER);
+
+        if time_between_lines > 0 {
+            sleep(Duration::from_millis(time_between_lines));
+            kb.launching();
+        }
+    }
+
+    if time_between_lines == 0 {
         kb.launching();
+    }
 
 
     // let contents = fs::read_to_string(filename)
